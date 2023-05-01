@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: example
+  template:
+    metadata:
+      labels:
+        app: example
+    spec:
+      containers:
+      - name: example-container
+        image: example-image:latest
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "100Mi"
+          limits:
+            cpu: "200m"
+            memory: "200Mi"
+        ports:
+        - containerPort: 8080
+	//check performed by the kubelet
+	//to determine if a container is ready to receive traffic.
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+       //It determines the number of seconds that the kubelet should wait after a container starts before performing the first readiness probe.
+          initialDelaySeconds: 5
+          periodSeconds: 10
+       //diagnostic check performed by the kubelet
+       //to determine if a container is still running and responsive.
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 10
+       // It determines the number of seconds between each probe request sent to the container's endpoint.
+          periodSeconds: 30
+
+     //is a mechanism that allows you to schedule pods to nodes based on certain criteria
+      such as node properties, labels, or other pod attributes.
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - example
+            topologyKey: "kubernetes.io/hostname"
+  autoscaler:
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 50
